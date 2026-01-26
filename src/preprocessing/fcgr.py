@@ -31,12 +31,12 @@ def _kmer_to_index(kmer: str) -> int:
 
 def compute_fcgr(sequence: str, k: int) -> np.ndarray:
     """
-    Compute FCGR matrix for a single DNA sequence.
+    Compute true Frequency Chaos Game Representation (FCGR).
 
     Parameters
     ----------
     sequence : str
-        DNA sequence (length ~301 bp).
+        DNA sequence.
     k : int
         k-mer length.
 
@@ -48,26 +48,41 @@ def compute_fcgr(sequence: str, k: int) -> np.ndarray:
     size = 2 ** k
     fcgr = np.zeros((size, size), dtype=np.float32)
 
+    corners = {
+        'A': (0.0, 0.0),
+        'C': (0.0, 1.0),
+        'G': (1.0, 1.0),
+        'T': (1.0, 0.0)
+    }
+
     seq_len = len(sequence)
     if seq_len < k:
         return fcgr
 
     for i in range(seq_len - k + 1):
-        kmer = sequence[i:i + k]
-        idx = _kmer_to_index(kmer)
+        x, y = 0.5, 0.5  # CGR center
+        valid = True
 
-        # Split index into 2D coordinates
-        x = idx >> k
-        y = idx & ((1 << k) - 1)
+        for nt in sequence[i:i + k]:
+            if nt not in corners:
+                valid = False
+                break
+            cx, cy = corners[nt]
+            x = (x + cx) / 2
+            y = (y + cy) / 2
 
-        fcgr[x, y] += 1.0
+        if not valid:
+            continue
 
-    # Normalize by total k-mers (frequency-based)
-    total = fcgr.sum()
-    if total > 0:
-        fcgr /= total
+        ix = int(x * size)
+        iy = int(y * size)
+        fcgr[ix, iy] += 1.0
+
+    if fcgr.sum() > 0:
+        fcgr /= fcgr.sum()
 
     return fcgr
+
 
 
 def compute_multi_k_fcgr(
