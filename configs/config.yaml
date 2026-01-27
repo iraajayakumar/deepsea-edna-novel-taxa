@@ -1,0 +1,17 @@
+data:
+  fcgr_orig: /content/drive/MyDrive/deepsea_edna_data/fcgr.pkl
+  fcgr_mimic: /content/drive/MyDrive/deepsea_edna_data/fcgr_mimic.pkl
+
+model:
+  k_values: [4, 5, 6]
+  embed_dim: 128
+  n_clusters: 80
+
+training:
+  batch_size: 64
+  learning_rate: 0.001
+  epochs: 70
+  num_workers: 2
+
+output:
+  model_dir: /content/drive/MyDrive/deepsea_edna_models

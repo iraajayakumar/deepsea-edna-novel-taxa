@@ -1,109 +1,110 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
+import os
+import sys
 import yaml
 import pickle
-import os
+import torch
+from torch.utils.data import Dataset, DataLoader
 
-def to_tensor(fcgr_data_entry):
-    """Converts the 'fcgr' part of a data entry to a PyTorch tensor."""
-    if 'fcgr' in fcgr_data_entry and isinstance(fcgr_data_entry['fcgr'], (list, torch.Tensor)):
-        return torch.tensor(fcgr_data_entry['fcgr'], dtype=torch.float32).unsqueeze(0)
-    else:
-        raise ValueError("fcgr_data_entry must contain a 'fcgr' key with a tensor-convertible value")
+# --- Fix PYTHONPATH ---
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.append(PROJECT_ROOT)
+
+from src.models.network import MultiKFCGRNet
+from src.models.iic_loss import iic_loss
 
 
-class DeepSeaEDNA(Dataset):
-    """Custom Dataset for DeepSeaEDNA project."""
-    def __init__(self, fcgr_data):
-        self.fcgr_data = fcgr_data
-        self.keys = list(fcgr_data.keys())
+class DeepSeaEDNAPairs(Dataset):
+    """
+    Returns (orig_fcgr_dict, mimic_fcgr_dict)
+    Each dict: {k: Tensor[1, H, W]}
+    """
+    def __init__(self, fcgr_orig, fcgr_mimic, k_values):
+        self.keys = list(fcgr_orig.keys())
+        self.orig = fcgr_orig
+        self.mimic = fcgr_mimic
+        self.k_values = k_values
 
     def __len__(self):
         return len(self.keys)
 
     def __getitem__(self, idx):
         key = self.keys[idx]
-        data_entry = self.fcgr_data[key]
-        # Assuming `to_tensor` correctly processes the `data_entry` dictionary
-        # and returns the 'fcgr' tensor, and we also need the abundance.
-        # The model likely needs both fcgr and abundance.
-        # Let's return both for now, assuming the model will handle them.
-        fcgr_tensor = to_tensor(data_entry)
-        abundance = torch.tensor(data_entry['abundance'], dtype=torch.float32)
-        return fcgr_tensor, abundance
 
+        def to_tensor(entry):
+            return {
+                k: torch.tensor(entry[k], dtype=torch.float32).unsqueeze(0)
+                for k in self.k_values
+            }
 
-class DeepSeaClassifier(nn.Module):
-    """A simple CNN-based classifier for FCGR data."""
-    def __init__(self):
-        super(DeepSeaClassifier, self).__init__()
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
-        # Assuming input FCGR image is 256x256. After two pooling layers, it becomes 64x64.
-        # This might need adjustment based on the actual FCGR image size.
-        self.fc1 = nn.Linear(32 * 64 * 64, 128) # Adjust input features based on actual image size
-        self.relu3 = nn.ReLU()
-        self.fc2 = nn.Linear(128, 1) # Output a single value (e.g., predicted abundance)
+        return to_tensor(self.orig[key]), to_tensor(self.mimic[key])
 
-    def forward(self, x):
-        x = self.pool1(self.relu1(self.conv1(x)))
-        x = self.pool2(self.relu2(self.conv2(x)))
-        x = x.view(-1, 32 * 64 * 64) # Flatten the tensor
-        x = self.relu3(self.fc1(x))
-        x = self.fc2(x)
-        return x
 
 def train():
-    # Load configuration
-    with open('config.yaml', 'r') as f:
+    # Load config
+    with open("configs/config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    # Set device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print("Using device:", device)
 
-    # Load data
-    data_path = os.path.join(config['data']['path'], config['data']['fcgr_file'])
-    with open(data_path, 'rb') as f:
-        fcgr_data = pickle.load(f)
-    print(f"Loaded {len(fcgr_data)} FCGR entries.")
+    # Load FCGR data
+    with open(config["data"]["fcgr_orig"], "rb") as f:
+        fcgr_orig = pickle.load(f)
 
-    # Create dataset and dataloader
-    dataset = DeepSeaEDNA(fcgr_data)
-    loader = DataLoader(dataset, batch_size=config['training']['batch_size'], shuffle=True, num_workers=config['training']['num_workers'])
+    with open(config["data"]["fcgr_mimic"], "rb") as f:
+        fcgr_mimic = pickle.load(f)
 
-    # Initialize model, loss, and optimizer
-    model = DeepSeaClassifier().to(device)
-    criterion = nn.MSELoss() # Using MSE for abundance prediction
-    optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'])
+    print(f"Loaded {len(fcgr_orig)} sequences.")
 
-    # Training loop
-    for epoch in range(config['training']['epochs']):
-        model.train()
-        running_loss = 0.0
-        for inputs, targets in loader:
-            inputs = inputs.to(device)
-            targets = targets.to(device).view(-1, 1) # Reshape targets to match output of fc2
+    k_values = config["model"]["k_values"]
+
+    dataset = DeepSeaEDNAPairs(fcgr_orig, fcgr_mimic, k_values)
+    loader = DataLoader(
+        dataset,
+        batch_size=config["training"]["batch_size"],
+        shuffle=True,
+        num_workers=config["training"]["num_workers"],
+        drop_last=True
+    )
+
+    model = MultiKFCGRNet(
+        k_values=tuple(k_values),
+        embed_dim=config["model"]["embed_dim"],
+        n_clusters=config["model"]["n_clusters"]
+    ).to(device)
+
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=config["training"]["learning_rate"]
+    )
+
+    model.train()
+    for epoch in range(config["training"]["epochs"]):
+        epoch_loss = 0.0
+
+        for x1, x2 in loader:
+            x1 = {k: v.to(device) for k, v in x1.items()}
+            x2 = {k: v.to(device) for k, v in x2.items()}
+
+            p1 = model(x1)
+            p2 = model(x2)
+
+            loss = iic_loss(p1, p2)
 
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
             loss.backward()
             optimizer.step()
 
-            running_loss += loss.item()
+            epoch_loss += loss.item()
 
-        print(f"Epoch {epoch+1}/{config['training']['epochs']}, Loss: {running_loss/len(loader):.4f}")
+        print(f"Epoch [{epoch+1}/{config['training']['epochs']}], "
+              f"IIC Loss: {epoch_loss:.4f}")
 
-    print("Training complete.")
-    # Save model (optional)
-    # torch.save(model.state_dict(), config['model']['save_path'])
+    os.makedirs(config["output"]["model_dir"], exist_ok=True)
+    model_path = os.path.join(config["output"]["model_dir"], "iic_model.pt")
+    torch.save(model.state_dict(), model_path)
+    print(f"Model saved to {model_path}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     train()
