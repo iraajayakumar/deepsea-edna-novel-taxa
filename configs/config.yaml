@@ -1,18 +1,16 @@
+data:
+  fcgr_orig: data/interim/fcgr.pkl
+  fcgr_mimic: data/interim/fcgr_mimic.pkl
 
 model:
-  input_channels: 1
-  output_classes: 1 # Set to 1 for binary classification
-dataset:
-  k_mer_size: 4 # Example k-mer size to pick from FCGR dict
-
-data:
-  fcgr_orig: /content/drive/MyDrive/deepsea_edna_data/fcgr.pkl # Assuming this is your original FCGR data
-  fcgr_mimic: /content/drive/MyDrive/deepsea_edna_data/fcgr_mimic.pkl
+  n_clusters: 80
+  embed_dim: 128
 
 training:
   batch_size: 32
   learning_rate: 0.001
-  epochs: 1
+  epochs: 50
+  lambda_entropy: 0.0  # Disable for imbalanced taxa
 
 output:
-  model_dir: models # Directory to save trained models
+  model_dir: models/
