@@ -42,7 +42,7 @@ class MultiKFCGRNet(nn.Module):
         weights = F.softmax(self.fusion_weights, dim=0)
         fused = sum(w * f for w, f in zip(weights, features))
         logits = self.cluster_head(fused)
-        probs = F.log_softmax(logits, dim=1)
+        probs = F.softmax(logits, dim=1)      # ✅ NORMAL probs [0,1]
         return probs
 
 if __name__ == "__main__":
