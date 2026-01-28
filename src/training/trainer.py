@@ -18,22 +18,19 @@ def train():
     # Config (create configs/config.yaml if missing)
     config_path = os.path.join(PROJECT_ROOT, "configs", "config.yaml")
     config = {
-        'data': {
-            'fcgr_orig': 'data/interim/fcgr.pkl',
-            'fcgr_mimic': 'data/interim/fcgr_mimic.pkl'
-        },
-        'model': {'n_clusters': 80},
-        'training': {
-            'batch_size': 32,
-            'learning_rate': 1e-3,
-            'epochs': 50,
-            'lambda_entropy': 0.0  # No entropy reg for novel taxa
-        }
+        'data': {'fcgr_orig': 'data/interim/fcgr.pkl', 'fcgr_mimic': 'data/interim/fcgr_mimic.pkl'},
+        'model': {'n_clusters': 300},  # ← CHANGE 80→300
+        'training': {'batch_size': 512, 'learning_rate': 0.0001, 'epochs': 150, 'lambda_entropy': 2.0}  # ← FULL UPDATE
     }
+
     
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
-            config.update(yaml.safe_load(f))
+            full_config = yaml.safe_load(f)
+            config['data'].update(full_config.get('data', {}))
+            config['model'].update(full_config.get('model', {}))
+            config['training'].update(full_config.get('training', {}))
+
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"🚀 Training on {device}")
@@ -41,8 +38,13 @@ def train():
 
     # Dataset + Dataloader
     dataset = PairedFCGRDataset(config['data']['fcgr_orig'], config['data']['fcgr_mimic'])
-    loader = DataLoader(dataset, batch_size=config['training']['batch_size'], 
-                       shuffle=True, num_workers=4, pin_memory=True)
+    loader = DataLoader(dataset, 
+        batch_size=config['training']['batch_size'],
+        shuffle=True, 
+        num_workers=0,              # ← CHANGE: 4→0 (Colab safe)
+        pin_memory=torch.cuda.is_available()  # ← ADD
+    )
+
 
     # Model + Optimizer
     model = MultiKFCGRNet(

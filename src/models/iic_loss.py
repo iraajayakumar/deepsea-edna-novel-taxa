@@ -1,48 +1,22 @@
 import torch
+import torch.nn.functional as F
 
-
-def iic_loss(
-    p1,
-    p2,
-    eps=1e-8,
-    lambda_entropy=0.0
-):
+def iic_loss(p1, p2, eps=1e-8, lambda_entropy=2.0, temperature=0.5):
     """
-    Invariant Information Clustering loss.
-
-    Parameters
-    ----------
-    p1, p2 : torch.Tensor
-        Shape [B, K] cluster probability distributions.
-    lambda_entropy : float
-        Set >0 only if you want balanced clusters.
-        For novel taxa discovery, keep this LOW or 0.
-
-    Returns
-    -------
-    torch.Tensor
-        Scalar loss.
+    FIXED IIC: Accepts LOGITS, applies temperature-controlled softmax
     """
-    B, K = p1.size()
-
-    # Joint probability matrix
-    joint = torch.matmul(p1.T, p2)
-    joint = joint / joint.sum()
-
-    # Marginals
+    # Convert logits → temperature-scaled probs
+    probs1 = F.softmax(p1 / temperature, dim=1)
+    probs2 = F.softmax(p2 / temperature, dim=1)
+    
+    B, K = probs1.size()
+    joint = torch.matmul(probs1.T, probs2) / B
+    
     p_i = joint.sum(dim=1, keepdim=True)
     p_j = joint.sum(dim=0, keepdim=True)
-
-    # Mutual Information
-    mi = joint * (
-        torch.log(joint + eps)
-        - torch.log(p_i + eps)
-        - torch.log(p_j + eps)
-    )
-    mi = mi.sum()
-
-    # Optional entropy regularization
+    
+    mi = (joint * (torch.log(joint + eps) - torch.log(p_i + eps) - torch.log(p_j + eps))).sum()
     entropy = -(p_i * torch.log(p_i + eps)).sum()
-
+    
     loss = -mi + lambda_entropy * entropy
     return loss

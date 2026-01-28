@@ -3,14 +3,12 @@ data:
   fcgr_mimic: data/interim/fcgr_mimic.pkl
 
 model:
-  n_clusters: 20
+  n_clusters: 300           # 15x increase for eDNA diversity
   embed_dim: 128
+  k_values: [4,5,6]
 
 training:
-  batch_size: 512
-  learning_rate: 0.00005
+  batch_size: 512           # DeLUCS paper: critical for MI estimation
+  learning_rate: 0.0001     # 2x paper LR for multi-k
   epochs: 150
-  lambda_entropy: 0.0  # Disable for imbalanced taxa
-
-output:
-  model_dir: models/
+  lambda_entropy: 2.0       # DeLUCS paper: prevents collapse
