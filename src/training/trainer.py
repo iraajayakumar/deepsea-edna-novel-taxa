@@ -75,7 +75,7 @@ def train():
             p2 = model(mimic_fcgr) # Paired
             
             # IIC Loss - maximize MI between pairs
-            loss = iic_loss(p1, p2, lambda_entropy=config['training']['lambda_entropy'])
+            loss = -iic_loss(p1, p2, lambda_entropy=config['training']['lambda_entropy'])
             
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
