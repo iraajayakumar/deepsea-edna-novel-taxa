@@ -8,6 +8,3 @@ The method is based on:
 - Clustering without reference databases
 
 This project adapts and extends existing FCGR-based clustering methods to the unique challenges of deep-sea eDNA.
-
-## Project Status
-🚧 Under active development

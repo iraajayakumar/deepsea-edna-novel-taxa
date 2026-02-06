@@ -9,5 +9,7 @@ data/interim/
 
 notebooks/.ipynb_checkpoints/
 
+outputs/
+
 .env
 .DS_Store
