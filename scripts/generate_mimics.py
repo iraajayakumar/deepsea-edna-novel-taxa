@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import List, Dict
 from tqdm import tqdm
-import jsonS
+import json
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
