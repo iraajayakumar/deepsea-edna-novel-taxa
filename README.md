@@ -33,27 +33,9 @@ Unlike conventional taxonomic assignment pipelines, this approach does not rely 
 A structured preprocessing workflow designed to remove sequencing artefacts while preserving rare biological signals.
 </p>
 
-<table>
-<tr>
-<td width="50%" valign="top">
-
-<ul>
-<li>Adapter trimming</li>
-<li>Quality filtering</li>
-<li>Expected-error filtering</li>
-<li>Dereplication with abundance preservation</li>
-<li>De novo chimera detection</li>
-</ul>
-
-</td>
-
-<td width="50%" align="center">
-
-<img src="assets/Preprocessing_Diagram_final.png" width="300">
-
-</td>
-</tr>
-</table>
+<a href="assets/Preprocessing_Diagram_final.png">
+  <img src="assets//Preprocessing_Diagram_final.png" width="30%">
+</a>
 
 ---
 
@@ -68,7 +50,7 @@ DNA sequences are transformed into Frequency Chaos Game Representations at multi
 | 6 | 64 × 64         | Higher-order sequence signatures  |
 
 <a href="assets/FCGR & Mimic Generation.png">
-  <img src="assets/FCGR & Mimic Generation.png" width="800">
+  <img src="assets/FCGR & Mimic Generation.png" width="50%">
 </a>
 
 Multi-scale fusion enables simultaneous modeling of local and global compositional characteristics.
@@ -80,7 +62,7 @@ Multi-scale fusion enables simultaneous modeling of local and global composition
 A multi-branch convolutional neural network processes FCGR representations independently and combines them using attention-based feature fusion.
 
 <a href="assets/Clustering architecture.png">
-  <img src="assets/Clustering architecture.png" width="800">
+  <img src="assets/Clustering architecture.png" width="50%">
 </a>
 
 Training is performed using:
@@ -138,25 +120,25 @@ The dataset represents a challenging biodiversity discovery scenario due to:
 
 <table align="center">
 <tr>
-<td align="center" width="50%">
-<img src="assets/Read_Length_Distribution.png" width="400"><br>
+<td align="center" width="30%">
+<img src="assets/Read_Length_Distribution.png" width="70%"><br>
 <em>(a) Read Length Distribution</em>
 </td>
 
-<td align="center" width="50%">
-<img src="assets/GC content distribution.png" width="400"><br>
+<td align="center" width="30%">
+<img src="assets/GC content distribution.png" width="70%"><br>
 <em>(b) GC Content Distribution</em>
 </td>
 </tr>
 
 <tr>
-<td align="center" width="50%">
-<img src="assets/Abundance Distribution.png" width="400"><br>
+<td align="center" width="30%">
+<img src="assets/Abundance Distribution.png" width="70%"><br>
 <em>(c) Sequence Abundance Distribution</em>
 </td>
 
-<td align="center" width="50%">
-<img src="assets/Read_Dominant_Curves.png" width="400"><br>
+<td align="center" width="30%">
+<img src="assets/Read_Dominant_Curves.png" width="70%"><br>
 <em>(d) Read Dominance Curve</em>
 </td>
 </tr>
@@ -186,7 +168,7 @@ To evaluate biological plausibility, 200 representative candidate sequences were
 * Multiple candidates showed divergence beyond species-level thresholds.
 
 <a href="assets/Donut Chart.png">
-  <img src="assets/Donut Chart.png" width="800">
+  <img src="assets/Donut Chart.png" width="40%">
 </a>
 
 These findings support the ability of the framework to identify previously uncharacterized biodiversity.
